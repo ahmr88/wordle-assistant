@@ -38,6 +38,7 @@ updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd
 updateFromFrontend sessionId clientId msg model =
     case msg of
         QuestionAdded Nothing -> (model, Cmd.none)
+        QuestionAdded (Just "remove all") -> ({model | questions = []}, broadcast (QuestionsChanged [] clientId))
         QuestionAdded (Just s) -> 
           let newQs = s :: model.questions
           in
