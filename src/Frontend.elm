@@ -40,7 +40,13 @@ app =
 
 init : ( Model, Cmd FrontendMsg )
 init =
-    ( { guesses = Arr.fromList [], clientId = "" }, Cmd.none )
+    ( { guesses = Arr.fromList []
+      , possibleGuesses = Nothing
+      , clientId = ""
+      , possibleGuessesCount = Nothing
+      }
+    , Cmd.none
+    )
 
 
 update : FrontendMsg -> Model -> ( Model, Cmd FrontendMsg )
@@ -57,7 +63,12 @@ update msg model =
                             | guesses =
                                 Arr.push Arr.empty model.guesses
                           }
-                        , Debug.log "sendToBack" Cmd.none
+                        , sendToBackend <|
+                            SubmitGuesses
+                                (List.concat <|
+                                    Arr.toList <|
+                                        Arr.map Arr.toList model.guesses
+                                )
                         )
 
                     else
@@ -134,7 +145,12 @@ update msg model =
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
-    ( model, Cmd.none )
+    case msg of
+        FilteredWords ws ->
+            ( { model | possibleGuesses = Just ws }, Cmd.none )
+
+        FilteredWordsCount i ->
+            ( { model | possibleGuessesCount = Just i }, Cmd.none )
 
 
 view : Model -> Html FrontendMsg
@@ -184,7 +200,7 @@ mainContent model =
                   <|
                     column [ spacing 30 ]
                         [ inputArea model.guesses
-                        , infoArea
+                        , infoArea model
                         ]
                 , keyboardArea
                 ]
@@ -273,8 +289,21 @@ singleInput row col s =
         }
 
 
-infoArea =
-    row [ height fill, centerX ] [ text "3000 words remaining" ]
+infoArea model =
+    let
+        content =
+            case model.possibleGuesses of
+                Just gss -> List.map (\x -> row [] [text x]) gss
+                    -- (fromInt <| List.length x) ++ " words remain"
+
+                Nothing ->
+                    case model.possibleGuessesCount of
+                        Just i ->
+                            [row [] [ text <| fromInt i ++ " words remain"]]
+                        Nothing -> []
+    in
+    column [ height fill, centerX, Font.size 16 ] 
+      content
 
 
 keyboardArea =

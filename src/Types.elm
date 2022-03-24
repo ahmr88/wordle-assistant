@@ -1,19 +1,20 @@
 module Types exposing (..)
 
-import Lamdera exposing (ClientId, SessionId)
-import Set exposing (Set)
 import Array exposing (Array)
+import Lamdera exposing (ClientId, SessionId)
+import Dict exposing (Dict)
 
 
 type alias BackendModel =
-    { guesses : List String
-    , clients : List String
+    { clientGuesses : Dict String (List (Guess Char))
     }
 
 
 type alias FrontendModel =
     { guesses : Array (Array (Guess Char))
     , clientId : String
+    , possibleGuesses: Maybe (List String)
+    , possibleGuessesCount: Maybe Int
     }
 
 
@@ -34,6 +35,11 @@ type BackendMsg
 
 
 type ToFrontend
-    = FilteredWords ClientId (List String)
+    = FilteredWords (List String)
+    | FilteredWordsCount Int
 
-type Guess a  = Elim a | Contains a | At a Int
+
+type Guess a
+    = Elim a
+    | Contains a
+    | At a Int
