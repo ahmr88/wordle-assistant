@@ -12,7 +12,7 @@ type alias BackendModel =
 
 
 type alias FrontendModel =
-    { guesses : Array String
+    { guesses : Array (Array (Guess Char))
     , clientId : String
     }
 
@@ -21,6 +21,7 @@ type FrontendMsg
     = EnterKeyPressed
     | DelKeyPressed
     | CharKeyPressed Char
+    | GuessStateChange Int Int
     | FNoop
 
 

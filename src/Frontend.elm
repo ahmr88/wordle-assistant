@@ -9,6 +9,7 @@ import Element.Input as Input
 import Html exposing (Html)
 import Html.Attributes as HA
 import Lamdera exposing (sendToBackend)
+import Maybe exposing (..)
 import String exposing (..)
 import Types exposing (..)
 
@@ -51,10 +52,10 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just gs ->
-                    if length gs == 5 then
+                    if Arr.length gs == 5 then
                         ( { model
                             | guesses =
-                                Arr.push "" model.guesses
+                                Arr.push Arr.empty model.guesses
                           }
                         , Debug.log "sendToBack" Cmd.none
                         )
@@ -68,7 +69,7 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just gs ->
-                    if length gs == 1 then
+                    if Arr.length gs <= 1 then
                         ( { model
                             | guesses = Arr.slice 0 -1 model.guesses
                           }
@@ -77,14 +78,11 @@ update msg model =
 
                     else
                         ( { model
-                            | guesses = Arr.set 
-                                          (Arr.length model.guesses - 1) 
-                                          (fromList 
-                                            <| List.reverse 
-                                            <| List.drop 1 
-                                            <| List.reverse 
-                                            <| toList gs
-                                          ) model.guesses
+                            | guesses =
+                                Arr.set
+                                    (Arr.length model.guesses - 1)
+                                    (Arr.slice 0 -1 gs)
+                                    model.guesses
                           }
                         , Cmd.none
                         )
@@ -92,11 +90,15 @@ update msg model =
         CharKeyPressed c ->
             case Arr.get (Arr.length model.guesses - 1) model.guesses of
                 Nothing ->
-                    ( { model | guesses = Arr.fromList [fromList [ c ]] }, Cmd.none )
+                    ( { model | guesses = Arr.fromList [ Arr.fromList [ Elim c ] ] }, Cmd.none )
 
                 Just gs ->
-                    if length gs < 5 then
-                        ( { model | guesses = Arr.set (Arr.length model.guesses - 1) (gs ++ fromList [c]) model.guesses
+                    if Arr.length gs < 5 then
+                        ( { model
+                            | guesses =
+                                Arr.set (Arr.length model.guesses - 1)
+                                    (Arr.push (Elim c) gs)
+                                    model.guesses
                           }
                         , Cmd.none
                         )
@@ -104,14 +106,28 @@ update msg model =
                     else
                         ( model, Cmd.none )
 
-        --     ( { model
-        --         | guesses =
-        --             model.guesses
-        --                 ++ List.singleton
-        --                     (fromList [ c ])
-        --       }
-        --     , Cmd.none
-        --     )
+        GuessStateChange row col ->
+            if row /= Arr.length model.guesses - 1 then
+                ( model, Cmd.none )
+
+            else
+                case
+                    Arr.get row model.guesses
+                        |> andThen
+                            (\r -> Arr.get col r |> andThen (\g -> Just ( r, g )))
+                of
+                    Nothing ->
+                        ( model, Cmd.none )
+
+                    Just ( r, Elim c ) ->
+                        ( { model | guesses = Arr.set row (Arr.set col (Contains c) r) model.guesses }, Cmd.none )
+
+                    Just ( r, Contains c ) ->
+                        ( { model | guesses = Arr.set row (Arr.set col (At c col) r) model.guesses }, Cmd.none )
+
+                    Just ( r, At c i ) ->
+                        ( { model | guesses = Arr.set row (Arr.set col (Elim c) r) model.guesses }, Cmd.none )
+
         FNoop ->
             ( model, Cmd.none )
 
@@ -167,7 +183,7 @@ mainContent model =
                     ]
                   <|
                     column [ spacing 30 ]
-                        [ inputArea <| Arr.toList model.guesses
+                        [ inputArea model.guesses
                         , infoArea
                         ]
                 , keyboardArea
@@ -175,12 +191,20 @@ mainContent model =
         ]
 
 
-inputArea : List String -> Element msg
 inputArea gss =
-    row [] [ column [ spacing 10 ] <| List.map singleInputRow <| fillList 6 "" gss ]
+    row []
+        [ column [ spacing 10 ] <|
+            List.map
+                (\( r, gs ) ->
+                    singleInputRow r gs
+                )
+            <|
+                Arr.toIndexedList <|
+                    fillList 6 Arr.empty gss
+        ]
 
 
-fillList : Int -> a -> List a -> List a
+fillList : Int -> a -> Arr.Array a -> Arr.Array a
 fillList len filler xs =
     let
         big =
@@ -197,36 +221,56 @@ fillList len filler xs =
                 ( b :: bs, s :: ss ) ->
                     s :: aux bs ss
     in
-    aux big xs
+    Arr.fromList <| aux big (Arr.toList xs)
 
 
-singleInputRow : String -> Element msg
-singleInputRow =
+singleInputRow r =
     row [ spacing 10 ]
-        << List.map singleInput
-        << fillList 5 ""
-        << List.map
-            fromChar
-        << toList
+        << List.map (\( c, g ) -> singleInput r c g)
+        << Arr.toIndexedList
+        << fillList 5 Nothing
+        << Arr.map Just
 
 
-singleInput : String -> Element msg
-singleInput s =
-    el
+singleInput row col s =
+    Input.button
         [ Font.size 30
         , Font.light
-        , Bg.color (rgb255 59 59 60)
+        , case s of
+            Nothing ->
+                Bg.color (rgb255 59 59 60)
 
-        -- , Bg.color (rgb255 82 141 71)
-        -- , Bg.color (rgb255 181 159 59)
+            Just (Elim _) ->
+                Bg.color (rgb255 59 59 60)
+
+            Just (Contains _) ->
+                Bg.color (rgb255 181 159 59)
+
+            Just (At _ _) ->
+                Bg.color (rgb255 82 141 71)
         , Border.rounded 5
         , width (px 40)
         , height (px 50)
         , htmlAttribute <| HA.style "text-transform" "uppercase"
         ]
-    <|
-        el [ centerX, centerY ] <|
-            text s
+        { label =
+            el [ centerX, centerY ] <|
+                text
+                    (case s of
+                        Nothing ->
+                            ""
+
+                        Just (Contains c) ->
+                            fromChar c
+
+                        Just (Elim c) ->
+                            fromChar c
+
+                        Just (At c _) ->
+                            fromChar c
+                    )
+        , onPress = Just (GuessStateChange row col)
+        }
 
 
 infoArea =
