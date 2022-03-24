@@ -1,36 +1,38 @@
-
-  
 module Types exposing (..)
 
 import Lamdera exposing (ClientId, SessionId)
 import Set exposing (Set)
+import Array exposing (Array)
 
 
 type alias BackendModel =
-    { questions : List String
+    { guesses : List String
+    , clients : List String
     }
 
 
 type alias FrontendModel =
-    { questions : List String
-    , qInput : String
+    { guesses : Array String
     , clientId : String
     }
 
 
 type FrontendMsg
-      = AddQuestion
-      | InputChange String
-      | FNoop
+    = EnterKeyPressed
+    | DelKeyPressed
+    | CharKeyPressed Char
+    | FNoop
 
 
 type ToBackend
-      = QuestionAdded (Maybe String)
+    = SubmitGuesses (List (Guess Char))
 
 
 type BackendMsg
     = ClientConnected SessionId ClientId
-    | Noop
+
 
 type ToFrontend
-    = QuestionsChanged (List String) String
+    = FilteredWords ClientId (List String)
+
+type Guess a  = Elim a | Contains a | At a Int

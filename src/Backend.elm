@@ -3,6 +3,7 @@ module Backend exposing (app, init)
 import Lamdera exposing (ClientId, SessionId, broadcast, sendToFrontend)
 import Set exposing (Set)
 import Types exposing (..)
+import Wordle exposing (..)
 
 
 type alias Model =
@@ -20,31 +21,22 @@ app =
 
 init : ( Model, Cmd BackendMsg )
 init =
-    ( { questions = [] }, Cmd.none )
+    ( { guesses = [], clients = [] }, Cmd.none )
 
 
 update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
 update msg model =
     case msg of
         ClientConnected sessionId clientId ->
-            ( model
-            , sendToFrontend clientId <| QuestionsChanged model.questions clientId 
-            )
-        Noop ->
-            ( model, Cmd.none )
+            ( { model | clients = clientId :: model.clients }, Cmd.none )
 
 
 updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
     case msg of
-        QuestionAdded Nothing -> (model, Cmd.none)
-        QuestionAdded (Just "remove all") -> ({model | questions = []}, broadcast (QuestionsChanged [] clientId))
-        QuestionAdded (Just s) -> 
-          let newQs = s :: model.questions
-          in
-            ( { model | questions = newQs }
-            , broadcast (QuestionsChanged  newQs clientId) 
-            )
+        SubmitGuesses gss ->
+            ( model, Cmd.none )
+
 
 subscriptions model =
     Sub.batch
