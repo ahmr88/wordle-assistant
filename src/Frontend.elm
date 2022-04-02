@@ -29,7 +29,7 @@ app =
         , updateFromBackend = updateFromBackend
         , view =
             \model ->
-                { title = "Wordle Assistant"
+                { title = "Wordle Assistant ;)"
                 , body = [ view model ]
                 }
         , subscriptions = \_ -> Sub.none
