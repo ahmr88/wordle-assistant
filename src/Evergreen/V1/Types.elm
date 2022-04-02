@@ -1,34 +1,45 @@
 module Evergreen.V1.Types exposing (..)
 
+import Array
+import Dict
 import Lamdera
 
 
+type Guess a
+    = Elim a
+    | NotAt a Int
+    | At a Int
+
+
 type alias FrontendModel =
-    { questions : (List String)
-    , qInput : String
+    { guesses : Array.Array (Array.Array (Guess Char))
     , clientId : String
+    , possibleGuesses : Maybe (List String)
+    , possibleGuessesCount : Maybe Int
     }
 
 
 type alias BackendModel =
-    { questions : (List String)
+    { clientGuesses : Dict.Dict String (List (Guess Char))
     }
 
 
 type FrontendMsg
-    = AddQuestion
-    | InputChange String
+    = EnterKeyPressed
+    | DelKeyPressed
+    | CharKeyPressed Char
+    | GuessStateChange Int Int
     | FNoop
 
 
 type ToBackend
-    = QuestionAdded (Maybe String)
+    = SubmitGuesses (List (Guess Char))
 
 
 type BackendMsg
     = ClientConnected Lamdera.SessionId Lamdera.ClientId
-    | Noop
 
 
 type ToFrontend
-    = QuestionsChanged (List String) String
+    = FilteredWords (List String)
+    | FilteredWordsCount Int
