@@ -41,5 +41,5 @@ type ToFrontend
 
 type Guess a
     = Elim a
-    | Contains a
+    | NotAt a Int
     | At a Int

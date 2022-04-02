@@ -29,7 +29,7 @@ app =
         , updateFromBackend = updateFromBackend
         , view =
             \model ->
-                { title = "v1"
+                { title = "Wordle Assistant"
                 , body = [ view model ]
                 }
         , subscriptions = \_ -> Sub.none
@@ -131,9 +131,9 @@ update msg model =
                         ( model, Cmd.none )
 
                     Just ( r, Elim c ) ->
-                        ( { model | guesses = Arr.set row (Arr.set col (Contains c) r) model.guesses }, Cmd.none )
+                        ( { model | guesses = Arr.set row (Arr.set col (NotAt c col) r) model.guesses }, Cmd.none )
 
-                    Just ( r, Contains c ) ->
+                    Just ( r, NotAt c i) ->
                         ( { model | guesses = Arr.set row (Arr.set col (At c col) r) model.guesses }, Cmd.none )
 
                     Just ( r, At c i ) ->
@@ -259,7 +259,7 @@ singleInput row col s =
             Just (Elim _) ->
                 Bg.color (rgb255 59 59 60)
 
-            Just (Contains _) ->
+            Just (NotAt _ _) ->
                 Bg.color (rgb255 181 159 59)
 
             Just (At _ _) ->
@@ -276,7 +276,7 @@ singleInput row col s =
                         Nothing ->
                             ""
 
-                        Just (Contains c) ->
+                        Just (NotAt c _) ->
                             fromChar c
 
                         Just (Elim c) ->

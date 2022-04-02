@@ -78,10 +78,10 @@ getElim g =
             Nothing
 
 
-getCont g =
+getNotAt g =
     case g of
-        Contains c ->
-            Just c
+        NotAt c i ->
+            Just ( i, c )
 
         _ ->
             Nothing
@@ -116,14 +116,39 @@ possibleGuesses ws gss =
             unwrapMaybes <| List.map getElim gss
 
         conts =
-            unwrapMaybes <| List.map getCont gss
+            unwrapMaybes <| List.map getNotAt gss
 
         ats =
             unwrapMaybes <| List.map getAt gss
     in
     List.filter (\cand -> List.all (\elim -> not <| List.member elim <| toList cand) elims) <|
-        List.filter (\cand -> List.all (\con -> List.member con <| toList cand) conts) <|
-            List.filter (\cand -> List.all (\( i, c ) -> List.member ( i, c ) <| Arr.toIndexedList <| Arr.fromList <| toList cand) ats) <|
+        List.filter
+            (\cand ->
+                List.all
+                    (\( i, c ) ->
+                        not
+                            (List.member ( i, c ) <|
+                                Arr.toIndexedList <|
+                                    Arr.fromList <|
+                                        toList cand
+                            )
+                            && (List.member c <| toList cand)
+                    )
+                    conts
+            )
+        <|
+            List.filter
+                (\cand ->
+                    List.all
+                        (\( i, c ) ->
+                            List.member ( i, c ) <|
+                                Arr.toIndexedList <|
+                                    Arr.fromList <|
+                                        toList cand
+                        )
+                        ats
+                )
+            <|
                 ws
 
 
